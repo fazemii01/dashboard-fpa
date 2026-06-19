@@ -30,9 +30,14 @@ export default function UsersPage() {
 
   const editModal = useDisclosure();
   const createModal = useDisclosure();
+  const deleteModal = useDisclosure();
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedDeleteUser, setSelectedDeleteUser] = useState<any>(null);
 
   // Edit form states
+  const [editFullName, setEditFullName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPassword, setEditPassword] = useState("");
   const [editRole, setEditRole] = useState("");
   const [editLembagaId, setEditLembagaId] = useState<string>("");
   const [editActive, setEditActive] = useState(true);
@@ -96,14 +101,21 @@ export default function UsersPage() {
   }, []);
 
   const handleEdit = async () => {
+    if (!editEmail) {
+      toast.error("Email wajib diisi!");
+      return;
+    }
     try {
-      const lid = editLembagaId === "none" || !editLembagaId ? null : Number(editLembagaId);
+      const lid = editRole === "super_admin" || editLembagaId === "none" || !editLembagaId ? null : Number(editLembagaId);
       await apiRequest(`/super-admin/users/${selectedUser.id}`, {
         method: "PUT",
         body: JSON.stringify({
+          full_name: editFullName || null,
+          email: editEmail,
           role: editRole,
           lembaga_id: lid,
           is_active: editActive,
+          password: editPassword || null,
         }),
       });
       editModal.onClose();
@@ -111,6 +123,20 @@ export default function UsersPage() {
       toast.success("User berhasil diperbarui!");
     } catch (err: any) {
       toast.error(err.message || "Gagal memperbarui user");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedDeleteUser) return;
+    try {
+      await apiRequest(`/super-admin/users/${selectedDeleteUser.id}`, {
+        method: "DELETE",
+      });
+      deleteModal.onClose();
+      fetchData();
+      toast.success("User berhasil dihapus!");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menghapus user");
     }
   };
 
@@ -179,20 +205,36 @@ export default function UsersPage() {
                   })}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    size="sm"
-                    variant="flat"
-                    color="primary"
-                    onPress={() => {
-                      setSelectedUser(item);
-                      setEditRole(item.role);
-                      setEditLembagaId(item.lembaga_id ? item.lembaga_id.toString() : "none");
-                      setEditActive(item.is_active);
-                      editModal.onOpen();
-                    }}
-                  >
-                    Edit Akses
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="primary"
+                      onPress={() => {
+                        setSelectedUser(item);
+                        setEditFullName(item.full_name || "");
+                        setEditEmail(item.email || "");
+                        setEditPassword("");
+                        setEditRole(item.role);
+                        setEditLembagaId(item.lembaga_id ? item.lembaga_id.toString() : "none");
+                        setEditActive(item.is_active);
+                        editModal.onOpen();
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      color="danger"
+                      onPress={() => {
+                        setSelectedDeleteUser(item);
+                        deleteModal.onOpen();
+                      }}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -203,11 +245,38 @@ export default function UsersPage() {
       {/* EDIT MODAL */}
       <Modal isOpen={editModal.isOpen} onClose={editModal.onClose}>
         <ModalContent>
-          <ModalHeader>Edit Hak Akses Pengguna</ModalHeader>
+          <ModalHeader>Edit Pengguna</ModalHeader>
           <ModalBody className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-default-800">{selectedUser?.full_name}</span>
-              <span className="text-xs text-default-500">{selectedUser?.email}</span>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-default-600">Nama Lengkap</label>
+              <Input
+                variant="bordered"
+                placeholder="Nama Lengkap"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-default-600">Email</label>
+              <Input
+                variant="bordered"
+                type="email"
+                placeholder="Email"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-default-600">Password Baru (Kosongkan jika tidak ingin diubah)</label>
+              <Input
+                variant="bordered"
+                type="password"
+                placeholder="Password Baru"
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -249,6 +318,25 @@ export default function UsersPage() {
           <ModalFooter>
             <Button variant="flat" onPress={editModal.onClose}>Batal</Button>
             <Button color="primary" onPress={handleEdit}>Perbarui</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal isOpen={deleteModal.isOpen} onClose={deleteModal.onClose}>
+        <ModalContent>
+          <ModalHeader>Konfirmasi Hapus Pengguna</ModalHeader>
+          <ModalBody>
+            <p className="text-default-700 text-sm">
+              Apakah Anda yakin ingin menghapus pengguna <span className="font-semibold text-danger">{selectedDeleteUser?.full_name || selectedDeleteUser?.email}</span>?
+            </p>
+            <p className="text-xs text-default-500 mt-2">
+              Peringatan: Tindakan ini tidak dapat dibatalkan. Semua sesi pemindaian yang dibuat oleh pengguna ini akan ikut terhapus untuk menjaga konsistensi database!
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onPress={deleteModal.onClose}>Batal</Button>
+            <Button color="danger" onPress={handleDelete}>Hapus</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
