@@ -25,7 +25,7 @@ export const Login = () => {
       setError(null);
       setLoading(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-tab.jaribakat.com";
         const response = await fetch(`${apiUrl}/auth/login`, {
           method: "POST",
           headers: {
