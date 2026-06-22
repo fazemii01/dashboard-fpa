@@ -38,6 +38,7 @@ export default function LembagaPage() {
   // Form states
   const [newName, setNewName] = useState("");
   const [newCredits, setNewCredits] = useState(0);
+  const [newType, setNewType] = useState("umum");
 
   const [topupClientName, setTopupClientName] = useState("");
   const [topupDescription, setTopupDescription] = useState("");
@@ -47,7 +48,7 @@ export default function LembagaPage() {
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  const pricePerCredit = 300000;
+  const pricePerCredit = selectedLembaga?.type === "partner" ? 95000 : 125000;
   const creditsToBuy = topupCredits === "custom" ? Number(customCredits) : Number(topupCredits);
   const subtotal = creditsToBuy * pricePerCredit;
   const discountVal = Number(topupDiscount) || 0;
@@ -55,6 +56,7 @@ export default function LembagaPage() {
 
   const [editName, setEditName] = useState("");
   const [editActive, setEditActive] = useState(true);
+  const [editType, setEditType] = useState("umum");
 
   const fetchLembaga = () => {
     setLoading(true);
@@ -77,11 +79,12 @@ export default function LembagaPage() {
     try {
       await apiRequest("/super-admin/lembaga", {
         method: "POST",
-        body: JSON.stringify({ name: newName, credits: Number(newCredits) }),
+        body: JSON.stringify({ name: newName, credits: Number(newCredits), type: newType }),
       });
       createModal.onClose();
       setNewName("");
       setNewCredits(0);
+      setNewType("umum");
       fetchLembaga();
       toast.success("Lembaga berhasil ditambahkan!");
     } catch (err: any) {
@@ -121,6 +124,7 @@ export default function LembagaPage() {
         body: JSON.stringify({
           name: editName,
           is_active: editActive,
+          type: editType,
         }),
       });
       editModal.onClose();
@@ -155,6 +159,7 @@ export default function LembagaPage() {
             <TableColumn>TOTAL USER</TableColumn>
             <TableColumn>LAPORAN TERBENTUK</TableColumn>
             <TableColumn>STATUS</TableColumn>
+            <TableColumn>TIPE</TableColumn>
             <TableColumn>TANGGAL DAFTAR</TableColumn>
             <TableColumn>AKSI</TableColumn>
           </TableHeader>
@@ -172,6 +177,11 @@ export default function LembagaPage() {
                 <TableCell>
                   <Chip color={item.is_active ? "success" : "danger"} variant="dot" size="sm">
                     {item.is_active ? "Aktif" : "Non-aktif"}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <Chip color={item.type === "partner" ? "secondary" : "default"} variant="flat" size="sm">
+                    {item.type === "partner" ? "Partner" : "Umum"}
                   </Chip>
                 </TableCell>
                 <TableCell className="text-default-500 text-xs">
@@ -209,6 +219,7 @@ export default function LembagaPage() {
                         setSelectedLembaga(item);
                         setEditName(item.name);
                         setEditActive(item.is_active);
+                        setEditType(item.type || "umum");
                         editModal.onOpen();
                       }}
                     >
@@ -242,6 +253,10 @@ export default function LembagaPage() {
               value={newCredits.toString()}
               onChange={(e) => setNewCredits(Number(e.target.value))}
             />
+            <div className="flex items-center justify-between p-2 border border-divider rounded-xl">
+              <span className="text-sm">Lembaga Partner (Affiliate)</span>
+              <Switch isSelected={newType === "partner"} onValueChange={(val) => setNewType(val ? "partner" : "umum")} />
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="flat" onPress={createModal.onClose}>Batal</Button>
@@ -399,7 +414,7 @@ export default function LembagaPage() {
                         style: "currency",
                         currency: "IDR",
                         minimumFractionDigits: 0,
-                      }).format(creditsToBuy * 300000)}
+                      }).format(creditsToBuy * pricePerCredit)}
                     </span>
                   </div>
                   <div className="flex justify-between text-danger">
@@ -462,6 +477,10 @@ export default function LembagaPage() {
             <div className="flex items-center justify-between p-2 border border-divider rounded-xl">
               <span className="text-sm">Status Aktif Lembaga</span>
               <Switch isSelected={editActive} onValueChange={setEditActive} />
+            </div>
+            <div className="flex items-center justify-between p-2 border border-divider rounded-xl">
+              <span className="text-sm">Lembaga Partner (Affiliate)</span>
+              <Switch isSelected={editType === "partner"} onValueChange={(val) => setEditType(val ? "partner" : "umum")} />
             </div>
           </ModalBody>
           <ModalFooter>
