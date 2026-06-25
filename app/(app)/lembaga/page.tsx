@@ -31,6 +31,7 @@ export default function LembagaPage() {
   const createModal = useDisclosure();
   const topupModal = useDisclosure();
   const editModal = useDisclosure();
+  const settingsModal = useDisclosure();
 
   // Selected lembaga for actions
   const [selectedLembaga, setSelectedLembaga] = useState<any>(null);
@@ -48,7 +49,14 @@ export default function LembagaPage() {
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
-  const pricePerCredit = selectedLembaga?.type === "partner" ? 95000 : 125000;
+  // System settings states
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [priceUmum, setPriceUmum] = useState("125000");
+  const [pricePartner, setPricePartner] = useState("95000");
+  const [bulkOptionsStr, setBulkOptionsStr] = useState("5,10,15,20");
+  const [bulkOptions, setBulkOptions] = useState<string[]>(["5", "10", "15", "20"]);
+
+  const pricePerCredit = selectedLembaga?.type === "partner" ? Number(pricePartner) : Number(priceUmum);
   const creditsToBuy = topupCredits === "custom" ? Number(customCredits) : Number(topupCredits);
   const subtotal = creditsToBuy * pricePerCredit;
   const discountVal = Number(topupDiscount) || 0;
@@ -57,6 +65,45 @@ export default function LembagaPage() {
   const [editName, setEditName] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editType, setEditType] = useState("umum");
+
+  const fetchSettings = () => {
+    apiRequest("/super-admin/settings")
+      .then((data: any[]) => {
+        const oOpt = data.find((s) => s.key === "topup_bulk_options");
+        const oUmum = data.find((s) => s.key === "price_umum");
+        const oPartner = data.find((s) => s.key === "price_partner");
+        if (oOpt) {
+          setBulkOptionsStr(oOpt.value);
+          setBulkOptions(oOpt.value.split(",").map((x: string) => x.trim()).filter(Boolean));
+        }
+        if (oUmum) setPriceUmum(oUmum.value);
+        if (oPartner) setPricePartner(oPartner.value);
+      })
+      .catch((err) => {
+        console.error("Gagal memuat pengaturan:", err);
+      });
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setSettingsLoading(true);
+      await apiRequest("/super-admin/settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          topup_bulk_options: bulkOptionsStr,
+          price_umum: Number(priceUmum),
+          price_partner: Number(pricePartner),
+        }),
+      });
+      setBulkOptions(bulkOptionsStr.split(",").map((x: string) => x.trim()).filter(Boolean));
+      settingsModal.onClose();
+      toast.success("Pengaturan top-up berhasil diperbarui!");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memperbarui pengaturan");
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const fetchLembaga = () => {
     setLoading(true);
@@ -73,6 +120,7 @@ export default function LembagaPage() {
 
   useEffect(() => {
     fetchLembaga();
+    fetchSettings();
   }, []);
 
   const handleCreate = async () => {
@@ -142,9 +190,17 @@ export default function LembagaPage() {
           <h3 className="text-2xl font-bold text-default-900">Manajemen Lembaga</h3>
           <p className="text-default-500 text-sm">Daftar dan kelola lembaga, kuota kredit, serta status keaktifan.</p>
         </div>
-        <Button color="primary" onPress={createModal.onOpen}>
-          Tambah Lembaga
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="flat" color="secondary" onPress={() => {
+            fetchSettings();
+            settingsModal.onOpen();
+          }}>
+            Pengaturan Top Up
+          </Button>
+          <Button color="primary" onPress={createModal.onOpen}>
+            Tambah Lembaga
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -202,7 +258,7 @@ export default function LembagaPage() {
                         setTopupClientName("");
                         setTopupDescription("");
                         setTopupDiscount("0");
-                        setTopupCredits("5");
+                        setTopupCredits(bulkOptions[0] || "5");
                         setCustomCredits("");
                         setGeneratedInvoice(null);
                         setCopied(false);
@@ -362,9 +418,15 @@ export default function LembagaPage() {
                   onChange={(e) => setTopupDescription(e.target.value)}
                 />
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs text-default-500">Pilih Kredit (1 Kredit = Rp 300.000)</span>
+                  <span className="text-xs text-default-500">
+                    Pilih Kredit (1 Kredit = {new Intl.NumberFormat("id-ID", {
+                      style: "currency",
+                      currency: "IDR",
+                      minimumFractionDigits: 0,
+                    }).format(pricePerCredit)})
+                  </span>
                   <div className="flex gap-2 flex-wrap">
-                    {["5", "10", "15", "20"].map((opt) => (
+                    {bulkOptions.map((opt) => (
                       <Button
                         key={opt}
                         size="sm"
@@ -460,6 +522,40 @@ export default function LembagaPage() {
               </ModalFooter>
             </>
           )}
+        </ModalContent>
+      </Modal>
+
+      {/* SETTINGS MODAL */}
+      <Modal isOpen={settingsModal.isOpen} onClose={settingsModal.onClose}>
+        <ModalContent>
+          <ModalHeader>Pengaturan Top Up</ModalHeader>
+          <ModalBody className="flex flex-col gap-4">
+            <Input
+              label="Harga Kredit Umum (Rp)"
+              type="number"
+              variant="bordered"
+              value={priceUmum}
+              onChange={(e) => setPriceUmum(e.target.value)}
+            />
+            <Input
+              label="Harga Kredit Partner (Rp)"
+              type="number"
+              variant="bordered"
+              value={pricePartner}
+              onChange={(e) => setPricePartner(e.target.value)}
+            />
+            <Input
+              label="Paket Bulk Kredit (pisahkan dengan koma)"
+              placeholder="Contoh: 5,10,15,20"
+              variant="bordered"
+              value={bulkOptionsStr}
+              onChange={(e) => setBulkOptionsStr(e.target.value)}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="flat" onPress={settingsModal.onClose}>Batal</Button>
+            <Button color="primary" onPress={handleSaveSettings} isLoading={settingsLoading}>Simpan</Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 
