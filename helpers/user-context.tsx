@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { apiRequest } from "./api";
 
 export interface UserProfile {
-  id: int;
+  id: number;
   email: string;
   full_name: string | null;
   role: "admin_pusat" | "super_admin" | "admin" | "staff";
