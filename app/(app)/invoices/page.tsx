@@ -15,21 +15,34 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure
+  useDisclosure,
+  Input
 } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
 import { useToast } from "@/components/toast/toast-provider";
+import { useUser } from "@/helpers/user-context";
 
 export default function InvoicesPage() {
   const toast = useToast();
+  const { user } = useUser();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  
   const approveModal = useDisclosure();
   const [approving, setApproving] = useState(false);
   const deleteModal = useDisclosure();
   const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Request top-up modal states for super_admin
+  const requestTopupModal = useDisclosure();
+  const [reqCredits, setReqCredits] = useState(10);
+  const [reqClientName, setReqClientName] = useState("");
+  const [reqDescription, setReqDescription] = useState("");
+  const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+  const [requesting, setRequesting] = useState(false);
 
   const fetchInvoices = () => {
     setLoading(true);
@@ -76,11 +89,37 @@ export default function InvoicesPage() {
       approveModal.onClose();
       setSelectedInvoice(null);
       fetchInvoices();
-      toast.success("Pembayaran invoice berhasil disetujui! Kredit telah ditambahkan ke lembaga.");
+      toast.success("Pembayaran invoice berhasil disetujui! Kredit telah ditambahkan.");
     } catch (err: any) {
       toast.error(err.message || "Gagal menyetujui invoice");
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleRequestTopup = async () => {
+    if (reqCredits <= 0) {
+      toast.warning("Jumlah kredit harus bernilai positif");
+      return;
+    }
+    setRequesting(true);
+    try {
+      const res = await apiRequest("/invoices", {
+        method: "POST",
+        body: JSON.stringify({
+          credits: Number(reqCredits),
+          client_name: reqClientName || user?.full_name || user?.email,
+          description: reqDescription || "Request Top Up Kredit Wilayah",
+          lembaga_id: null,
+        }),
+      });
+      setGeneratedInvoice(res);
+      fetchInvoices();
+      toast.success("Invoice request top-up berhasil dibuat!");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membuat invoice");
+    } finally {
+      setRequesting(false);
     }
   };
 
@@ -120,9 +159,16 @@ export default function InvoicesPage() {
 
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
-      <div>
-        <h3 className="text-2xl font-bold text-default-900">Manajemen Invoice</h3>
-        <p className="text-default-500 text-sm">Kelola tagihan credit top-up lembaga, verifikasi bukti transfer, dan approve transaksi.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-2xl font-bold text-default-900">Manajemen Invoice</h3>
+          <p className="text-default-500 text-sm">Kelola tagihan credit top-up lembaga, verifikasi bukti transfer, dan approve transaksi.</p>
+        </div>
+        {user?.role === "super_admin" && (
+          <Button color="primary" onPress={requestTopupModal.onOpen}>
+            Request Top Up Wilayah
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -134,6 +180,7 @@ export default function InvoicesPage() {
           <TableHeader>
             <TableColumn>KODE INVOICE</TableColumn>
             <TableColumn>NAMA LEMBAGA</TableColumn>
+            <TableColumn>WILAYAH</TableColumn>
             <TableColumn>ATAS NAMA</TableColumn>
             <TableColumn>DESKRIPSI</TableColumn>
             <TableColumn>KREDIT</TableColumn>
@@ -146,7 +193,18 @@ export default function InvoicesPage() {
             {invoices.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-mono text-xs text-default-600 font-semibold">{item.code}</TableCell>
-                <TableCell className="font-semibold text-default-800">{item.lembaga_name}</TableCell>
+                <TableCell className="font-semibold text-default-800">
+                  {item.lembaga_name || (
+                    <span className="text-primary font-semibold italic">Top-Up Regional</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {item.wilayah_name ? (
+                    <span className="font-semibold text-default-700">{item.wilayah_name}</span>
+                  ) : (
+                    <span className="text-xs text-default-400 italic">Global</span>
+                  )}
+                </TableCell>
                 <TableCell>{item.client_name}</TableCell>
                 <TableCell className="max-w-xs truncate">{item.description}</TableCell>
                 <TableCell>
@@ -325,6 +383,131 @@ export default function InvoicesPage() {
               Hapus
             </Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* REQUEST TOP-UP MODAL */}
+      <Modal 
+        isOpen={requestTopupModal.isOpen} 
+        onClose={() => {
+          requestTopupModal.onClose();
+          setGeneratedInvoice(null);
+          setCopied(false);
+        }}
+      >
+        <ModalContent>
+          {generatedInvoice ? (
+            <>
+              <ModalHeader>Invoice Berhasil Dibuat</ModalHeader>
+              <ModalBody className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2 p-4 bg-default-50 border border-divider rounded-xl">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-default-500">Nama Wilayah</span>
+                    <span className="font-semibold">{user?.wilayah_name || "Regional"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-default-500">Jumlah Kredit</span>
+                    <span className="font-semibold">{generatedInvoice.credits} Kredit</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-default-500">Total Pembayaran</span>
+                    <span className="font-semibold text-success">
+                      {new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                        minimumFractionDigits: 0,
+                      }).format(generatedInvoice.total_amount)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-default-500">Link Invoice Public:</span>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={`${window.location.origin}/invoice/${generatedInvoice.uuid}`}
+                      variant="bordered"
+                      size="sm"
+                    />
+                    <Button
+                      size="sm"
+                      color={copied ? "success" : "primary"}
+                      onPress={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/invoice/${generatedInvoice.uuid}`);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                    >
+                      {copied ? "Tersalin" : "Salin"}
+                    </Button>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button 
+                  color="primary" 
+                  variant="flat" 
+                  onPress={() => window.open(`/invoice/${generatedInvoice.uuid}`, "_blank")}
+                >
+                  Buka Invoice
+                </Button>
+                <Button 
+                  variant="flat" 
+                  onPress={() => {
+                    requestTopupModal.onClose();
+                    setGeneratedInvoice(null);
+                    setCopied(false);
+                  }}
+                >
+                  Tutup
+                </Button>
+              </ModalFooter>
+            </>
+          ) : (
+            <>
+              <ModalHeader>Request Top Up Wilayah</ModalHeader>
+              <ModalBody className="flex flex-col gap-4">
+                <Input
+                  label="Jumlah Kredit"
+                  type="number"
+                  placeholder="Contoh: 10"
+                  variant="bordered"
+                  value={reqCredits.toString()}
+                  onChange={(e) => setReqCredits(Math.max(1, Number(e.target.value)))}
+                />
+                <Input
+                  label="Atas Nama Pemohon"
+                  placeholder="Masukkan nama Anda..."
+                  variant="bordered"
+                  value={reqClientName}
+                  onChange={(e) => setReqClientName(e.target.value)}
+                />
+                <Input
+                  label="Keterangan"
+                  placeholder="Masukkan deskripsi request..."
+                  variant="bordered"
+                  value={reqDescription}
+                  onChange={(e) => setReqDescription(e.target.value)}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button 
+                  variant="flat" 
+                  onPress={requestTopupModal.onClose}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  color="primary" 
+                  isLoading={requesting}
+                  onPress={handleRequestTopup}
+                >
+                  Kirim Request
+                </Button>
+              </ModalFooter>
+            </>
+          )}
         </ModalContent>
       </Modal>
     </div>

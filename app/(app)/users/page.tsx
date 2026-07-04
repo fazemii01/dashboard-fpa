@@ -21,6 +21,7 @@ import {
 } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
 import { useToast } from "@/components/toast/toast-provider";
+import { useUser } from "@/helpers/user-context";
 
 export default function UsersPage() {
   const toast = useToast();
@@ -31,6 +32,11 @@ export default function UsersPage() {
   const editModal = useDisclosure();
   const createModal = useDisclosure();
   const deleteModal = useDisclosure();
+  const { user } = useUser();
+  const [wilayahList, setWilayahList] = useState<any[]>([]);
+  const [createWilayahId, setCreateWilayahId] = useState<string>("none");
+  const [editWilayahId, setEditWilayahId] = useState<string>("none");
+
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedDeleteUser, setSelectedDeleteUser] = useState<any>(null);
 
@@ -56,6 +62,7 @@ export default function UsersPage() {
     }
     try {
       const lid = createRole === "super_admin" || createLembagaId === "none" || !createLembagaId ? null : Number(createLembagaId);
+      const wid = createRole === "super_admin" && createWilayahId !== "none" ? Number(createWilayahId) : null;
       await apiRequest("/super-admin/users", {
         method: "POST",
         body: JSON.stringify({
@@ -64,6 +71,7 @@ export default function UsersPage() {
           full_name: createFullName || null,
           role: createRole,
           lembaga_id: lid,
+          wilayah_id: wid,
         }),
       });
       
@@ -73,6 +81,7 @@ export default function UsersPage() {
       setCreatePassword("");
       setCreateRole("staff");
       setCreateLembagaId("none");
+      setCreateWilayahId("none");
       
       createModal.onClose();
       fetchData();
@@ -89,6 +98,11 @@ export default function UsersPage() {
       const lembagaData = await apiRequest("/super-admin/lembaga");
       setUsers(usersData);
       setLembaga(lembagaData);
+      
+      if (user?.role === "admin_pusat") {
+        const wilayahData = await apiRequest("/super-admin/wilayah");
+        setWilayahList(wilayahData);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -97,8 +111,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleEdit = async () => {
     if (!editEmail) {
@@ -107,6 +123,7 @@ export default function UsersPage() {
     }
     try {
       const lid = editRole === "super_admin" || editLembagaId === "none" || !editLembagaId ? null : Number(editLembagaId);
+      const wid = editRole === "super_admin" && editWilayahId !== "none" ? Number(editWilayahId) : null;
       await apiRequest(`/super-admin/users/${selectedUser.id}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -114,6 +131,7 @@ export default function UsersPage() {
           email: editEmail,
           role: editRole,
           lembaga_id: lid,
+          wilayah_id: wid,
           is_active: editActive,
           password: editPassword || null,
         }),
@@ -163,6 +181,7 @@ export default function UsersPage() {
             <TableColumn>EMAIL</TableColumn>
             <TableColumn>ROLE</TableColumn>
             <TableColumn>LEMBAGA</TableColumn>
+            <TableColumn>WILAYAH</TableColumn>
             <TableColumn>STATUS</TableColumn>
             <TableColumn>TANGGAL GABUNG</TableColumn>
             <TableColumn>AKSI</TableColumn>
@@ -175,7 +194,9 @@ export default function UsersPage() {
                 <TableCell>
                   <Chip
                     color={
-                      item.role === "super_admin"
+                      item.role === "admin_pusat"
+                        ? "warning"
+                        : item.role === "super_admin"
                         ? "secondary"
                         : item.role === "admin"
                         ? "primary"
@@ -190,6 +211,13 @@ export default function UsersPage() {
                 <TableCell className="font-medium text-default-700">
                   {item.lembaga_name || (
                     <span className="text-default-400 italic">Tidak Terikat (Global)</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {item.wilayah_name ? (
+                    <span className="font-semibold text-default-700">{item.wilayah_name}</span>
+                  ) : (
+                    <span className="text-xs text-default-400 italic">Global</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -217,6 +245,7 @@ export default function UsersPage() {
                         setEditPassword("");
                         setEditRole(item.role);
                         setEditLembagaId(item.lembaga_id ? item.lembaga_id.toString() : "none");
+                        setEditWilayahId(item.wilayah_id ? item.wilayah_id.toString() : "none");
                         setEditActive(item.is_active);
                         editModal.onOpen();
                       }}
@@ -286,13 +315,32 @@ export default function UsersPage() {
                 onChange={(e) => setEditRole(e.target.value)}
                 className="w-full h-12 px-3 py-2 border-2 border-default-200 rounded-xl bg-transparent outline-none focus:border-primary transition-colors text-sm text-default-700 dark:bg-default-100"
               >
-                <option value="super_admin">Super Admin</option>
+                {user?.role === "admin_pusat" && <option value="admin_pusat">Admin Pusat</option>}
+                {user?.role === "admin_pusat" && <option value="super_admin">Super Admin</option>}
                 <option value="admin">Lembaga Admin</option>
                 <option value="staff">Lembaga Staff</option>
               </select>
             </div>
 
-            {editRole !== "super_admin" && (
+            {editRole === "super_admin" && user?.role === "admin_pusat" && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-default-600">Wilayah / Kota</label>
+                <select
+                  value={editWilayahId}
+                  onChange={(e) => setEditWilayahId(e.target.value)}
+                  className="w-full h-12 px-3 py-2 border-2 border-default-200 rounded-xl bg-transparent outline-none focus:border-primary transition-colors text-sm text-default-700 dark:bg-default-100"
+                >
+                  <option value="none">-- Pilih Wilayah --</option>
+                  {wilayahList.map((w) => (
+                    <option key={w.id} value={w.id.toString()}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {editRole !== "super_admin" && editRole !== "admin_pusat" && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-default-600">Asosiasi Lembaga</label>
                 <select
@@ -385,13 +433,32 @@ export default function UsersPage() {
                 onChange={(e) => setCreateRole(e.target.value)}
                 className="w-full h-12 px-3 py-2 border-2 border-default-200 rounded-xl bg-transparent outline-none focus:border-primary transition-colors text-sm text-default-700 dark:bg-default-100"
               >
-                <option value="super_admin">Super Admin</option>
+                {user?.role === "admin_pusat" && <option value="admin_pusat">Admin Pusat</option>}
+                {user?.role === "admin_pusat" && <option value="super_admin">Super Admin</option>}
                 <option value="admin">Lembaga Admin</option>
                 <option value="staff">Lembaga Staff</option>
               </select>
             </div>
 
-            {createRole !== "super_admin" && (
+            {createRole === "super_admin" && user?.role === "admin_pusat" && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-default-600">Wilayah / Kota</label>
+                <select
+                  value={createWilayahId}
+                  onChange={(e) => setCreateWilayahId(e.target.value)}
+                  className="w-full h-12 px-3 py-2 border-2 border-default-200 rounded-xl bg-transparent outline-none focus:border-primary transition-colors text-sm text-default-700 dark:bg-default-100"
+                >
+                  <option value="none">-- Pilih Wilayah --</option>
+                  {wilayahList.map((w) => (
+                    <option key={w.id} value={w.id.toString()}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {createRole !== "super_admin" && createRole !== "admin_pusat" && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-default-600">Asosiasi Lembaga</label>
                 <select

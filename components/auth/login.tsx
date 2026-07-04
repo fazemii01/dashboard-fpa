@@ -44,8 +44,8 @@ export const Login = () => {
 
         const data = await response.json();
         
-        if (data.role !== "super_admin") {
-          throw new Error("Akses Ditolak: Hanya Super Admin yang dapat mengakses dashboard ini.");
+        if (data.role !== "super_admin" && data.role !== "admin_pusat") {
+          throw new Error("Akses Ditolak: Hanya Admin Pusat atau Super Admin yang dapat mengakses dashboard ini.");
         }
 
         await createAuthCookie(data.access_token);
@@ -85,9 +85,9 @@ export const Login = () => {
                 placeholder='admin@alliakids.com'
                 type='email'
                 classNames={{
-                  inputWrapper: "border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
-                  label: "text-slate-400",
-                  input: "text-white"
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
                 }}
                 value={values.email}
                 isInvalid={!!errors.email && !!touched.email}
@@ -101,9 +101,9 @@ export const Login = () => {
                 placeholder='••••••••'
                 type='password'
                 classNames={{
-                  inputWrapper: "border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
-                  label: "text-slate-400",
-                  input: "text-white"
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
                 }}
                 value={values.password}
                 isInvalid={!!errors.password && !!touched.password}

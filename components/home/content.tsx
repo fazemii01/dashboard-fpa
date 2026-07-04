@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardBody, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Spinner } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
+import { useUser } from "@/helpers/user-context";
 
 export const Content = () => {
+  const { user } = useUser();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +39,8 @@ export const Content = () => {
     credit_summary = []
   } = stats || {};
 
+  const isSuperAdmin = user?.role === "super_admin";
+
   return (
     <div className="h-full lg:px-6 py-6 max-w-[90rem] mx-auto w-full flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -45,7 +49,17 @@ export const Content = () => {
       </div>
 
       {/* Stats Cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSuperAdmin ? "lg:grid-cols-5" : "lg:grid-cols-4"} gap-5`}>
+        {isSuperAdmin && (
+          <Card className="bg-gradient-to-br from-danger-500 to-danger-600 text-white shadow-lg">
+            <CardBody className="flex flex-col gap-1 p-6">
+              <span className="text-sm font-medium opacity-80">Saldo Reseller Anda</span>
+              <span className="text-3xl font-bold">{stats?.wilayah_credits || 0}</span>
+              <span className="text-xs opacity-60">Wilayah: {user?.wilayah_name || "-"}</span>
+            </CardBody>
+          </Card>
+        )}
+
         <Card className="bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg">
           <CardBody className="flex flex-col gap-1 p-6">
             <span className="text-sm font-medium opacity-80">Total Lembaga</span>

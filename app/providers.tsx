@@ -10,6 +10,8 @@ export interface ProvidersProps {
   themeProps?: ThemeProviderProps;
 }
 
+import { UserProvider } from "@/helpers/user-context";
+
 export function Providers({ children, themeProps }: ProvidersProps) {
   return (
     <NextUIProvider>
@@ -18,7 +20,9 @@ export function Providers({ children, themeProps }: ProvidersProps) {
         attribute='class'
         {...themeProps}>
         <ToastProvider>
-          {children}
+          <UserProvider>
+            {children}
+          </UserProvider>
         </ToastProvider>
       </NextThemesProvider>
     </NextUIProvider>

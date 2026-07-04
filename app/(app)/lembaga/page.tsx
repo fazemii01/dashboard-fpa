@@ -21,6 +21,7 @@ import {
 } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
 import { useToast } from "@/components/toast/toast-provider";
+import { useUser } from "@/helpers/user-context";
 
 export default function LembagaPage() {
   const toast = useToast();
@@ -32,6 +33,11 @@ export default function LembagaPage() {
   const topupModal = useDisclosure();
   const editModal = useDisclosure();
   const settingsModal = useDisclosure();
+
+  const { user } = useUser();
+  const [wilayahList, setWilayahList] = useState<any[]>([]);
+  const [selectedWilayahId, setSelectedWilayahId] = useState<string>("");
+  const [editWilayahId, setEditWilayahId] = useState<string>("");
 
   // Selected lembaga for actions
   const [selectedLembaga, setSelectedLembaga] = useState<any>(null);
@@ -121,18 +127,32 @@ export default function LembagaPage() {
   useEffect(() => {
     fetchLembaga();
     fetchSettings();
-  }, []);
+    if (user?.role === "admin_pusat") {
+      apiRequest("/super-admin/wilayah")
+        .then((data) => setWilayahList(data))
+        .catch((err) => console.error("Gagal memuat wilayah:", err));
+    }
+  }, [user]);
 
   const handleCreate = async () => {
     try {
+      const payload: any = { 
+        name: newName, 
+        credits: Number(newCredits), 
+        type: newType 
+      };
+      if (user?.role === "admin_pusat" && selectedWilayahId) {
+        payload.wilayah_id = Number(selectedWilayahId);
+      }
       await apiRequest("/super-admin/lembaga", {
         method: "POST",
-        body: JSON.stringify({ name: newName, credits: Number(newCredits), type: newType }),
+        body: JSON.stringify(payload),
       });
       createModal.onClose();
       setNewName("");
       setNewCredits(0);
       setNewType("umum");
+      setSelectedWilayahId("");
       fetchLembaga();
       toast.success("Lembaga berhasil ditambahkan!");
     } catch (err: any) {
@@ -167,13 +187,17 @@ export default function LembagaPage() {
 
   const handleEdit = async () => {
     try {
+      const payload: any = {
+        name: editName,
+        is_active: editActive,
+        type: editType,
+      };
+      if (user?.role === "admin_pusat") {
+        payload.wilayah_id = editWilayahId ? Number(editWilayahId) : null;
+      }
       await apiRequest(`/super-admin/lembaga/${selectedLembaga.id}`, {
         method: "PUT",
-        body: JSON.stringify({
-          name: editName,
-          is_active: editActive,
-          type: editType,
-        }),
+        body: JSON.stringify(payload),
       });
       editModal.onClose();
       fetchLembaga();
@@ -211,6 +235,7 @@ export default function LembagaPage() {
         <Table aria-label="Lembaga management table">
           <TableHeader>
             <TableColumn>NAMA LEMBAGA</TableColumn>
+            <TableColumn>WILAYAH</TableColumn>
             <TableColumn>KREDIT TERSISA</TableColumn>
             <TableColumn>TOTAL USER</TableColumn>
             <TableColumn>LAPORAN TERBENTUK</TableColumn>
@@ -223,6 +248,13 @@ export default function LembagaPage() {
             {lembaga.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-semibold">{item.name}</TableCell>
+                <TableCell>
+                  {item.wilayah_name ? (
+                    <span className="font-semibold text-default-700">{item.wilayah_name}</span>
+                  ) : (
+                    <span className="text-xs text-default-400 italic">Tanpa Wilayah</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Chip color={item.credits < 10 ? "danger" : "success"} variant="flat" size="sm">
                     {item.credits} Kredit
@@ -276,6 +308,7 @@ export default function LembagaPage() {
                         setEditName(item.name);
                         setEditActive(item.is_active);
                         setEditType(item.type || "umum");
+                        setEditWilayahId(item.wilayah_id ? item.wilayah_id.toString() : "");
                         editModal.onOpen();
                       }}
                     >
@@ -301,6 +334,21 @@ export default function LembagaPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
+            {user?.role === "admin_pusat" && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-default-600">Wilayah / Kota</label>
+                <select
+                  className="w-full bg-transparent border-2 border-divider rounded-xl p-2.5 text-sm"
+                  value={selectedWilayahId}
+                  onChange={(e) => setSelectedWilayahId(e.target.value)}
+                >
+                  <option value="">-- Pilih Wilayah --</option>
+                  {wilayahList.map((w) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <Input
               label="Kredit Awal"
               type="number"
@@ -570,6 +618,21 @@ export default function LembagaPage() {
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
             />
+            {user?.role === "admin_pusat" && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-default-600">Wilayah / Kota</label>
+                <select
+                  className="w-full bg-transparent border-2 border-divider rounded-xl p-2.5 text-sm"
+                  value={editWilayahId}
+                  onChange={(e) => setEditWilayahId(e.target.value)}
+                >
+                  <option value="">-- Tanpa Wilayah --</option>
+                  {wilayahList.map((w) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="flex items-center justify-between p-2 border border-divider rounded-xl">
               <span className="text-sm">Status Aktif Lembaga</span>
               <Switch isSelected={editActive} onValueChange={setEditActive} />

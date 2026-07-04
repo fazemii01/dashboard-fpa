@@ -43,6 +43,11 @@ export const Register = () => {
               <Input
                 variant='bordered'
                 label='Name'
+                classNames={{
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
+                }}
                 value={values.name}
                 isInvalid={!!errors.name && !!touched.name}
                 errorMessage={errors.name}
@@ -52,6 +57,11 @@ export const Register = () => {
                 variant='bordered'
                 label='Email'
                 type='email'
+                classNames={{
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
+                }}
                 value={values.email}
                 isInvalid={!!errors.email && !!touched.email}
                 errorMessage={errors.email}
@@ -61,6 +71,11 @@ export const Register = () => {
                 variant='bordered'
                 label='Password'
                 type='password'
+                classNames={{
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
+                }}
                 value={values.password}
                 isInvalid={!!errors.password && !!touched.password}
                 errorMessage={errors.password}
@@ -70,6 +85,11 @@ export const Register = () => {
                 variant='bordered'
                 label='Confirm password'
                 type='password'
+                classNames={{
+                  inputWrapper: "bg-white border-white/10 hover:border-white/20 focus-within:!border-primary rounded-xl",
+                  label: "text-slate-500",
+                  input: "text-black"
+                }}
                 value={values.confirmPassword}
                 isInvalid={
                   !!errors.confirmPassword && !!touched.confirmPassword

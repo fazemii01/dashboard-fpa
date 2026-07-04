@@ -18,10 +18,12 @@ import { FilterIcon } from "../icons/sidebar/filter-icon";
 import { useSidebarContext } from "../layout/layout-context";
 import { ChangeLogIcon } from "../icons/sidebar/changelog-icon";
 import { usePathname } from "next/navigation";
+import { useUser } from "@/helpers/user-context";
 
 export const SidebarWrapper = () => {
   const pathname = usePathname();
   const { collapsed, setCollapsed } = useSidebarContext();
+  const { user } = useUser();
 
   return (
     <aside className="h-screen z-[20] sticky top-0">
@@ -59,6 +61,14 @@ export const SidebarWrapper = () => {
                 isActive={pathname === "/"}
                 href="/"
               />
+              {user?.role === "admin_pusat" && (
+                <SidebarItem
+                  isActive={pathname === "/wilayah"}
+                  title="Wilayah"
+                  icon={<FilterIcon />}
+                  href="/wilayah"
+                />
+              )}
               <SidebarItem
                 isActive={pathname === "/lembaga"}
                 title="Lembaga"
@@ -71,12 +81,14 @@ export const SidebarWrapper = () => {
                 icon={<AccountsIcon />}
                 href="/users"
               />
-              <SidebarItem
-                isActive={pathname === "/permissions"}
-                title="Permissions"
-                icon={<SettingsIcon />}
-                href="/permissions"
-              />
+              {user?.role === "admin_pusat" && (
+                <SidebarItem
+                  isActive={pathname === "/permissions"}
+                  title="Permissions"
+                  icon={<SettingsIcon />}
+                  href="/permissions"
+                />
+              )}
               <SidebarItem
                 isActive={pathname === "/payments"}
                 title="Payments"
