@@ -9,7 +9,8 @@ module.exports = {
       watch: false,
       env: {
         PORT: 8100,
-        NODE_ENV: "production"
+        NODE_ENV: "production",
+        NEXT_PUBLIC_API_URL: "https://backend.jaribakat.com"
       }
     }
   ]

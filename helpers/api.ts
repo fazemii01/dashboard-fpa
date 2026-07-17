@@ -5,7 +5,7 @@ export function getAuthToken(): string | null {
 }
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend-tab.jaribakat.com";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend.jaribakat.com";
   const token = getAuthToken();
 
   const headers = new Headers(options.headers || {});
