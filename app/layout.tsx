@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 import type { Metadata } from "next";
 import { Providers } from "./providers";
 import { fontSans } from "@/config/fonts";
+import { ChunkErrorHandler } from "@/components/chunk-error-handler";
 import clsx from "clsx";
 
 export const metadata: Metadata = {
@@ -17,8 +18,10 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={clsx("font-sans antialiased", fontSans.className)}>
+        <ChunkErrorHandler />
         <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
+
