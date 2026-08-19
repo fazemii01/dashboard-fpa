@@ -61,6 +61,8 @@ export default function LembagaPage() {
   const [pricePartner, setPricePartner] = useState("95000");
   const [bulkOptionsStr, setBulkOptionsStr] = useState("5,10,15,20");
   const [bulkOptions, setBulkOptions] = useState<string[]>(["5", "10", "15", "20"]);
+  const [reportDelayEnabled, setReportDelayEnabled] = useState(false);
+  const [reportDelayMinutes, setReportDelayMinutes] = useState("15");
 
   const pricePerCredit = selectedLembaga?.type === "partner" ? Number(pricePartner) : Number(priceUmum);
   const creditsToBuy = topupCredits === "custom" ? Number(customCredits) : Number(topupCredits);
@@ -78,12 +80,16 @@ export default function LembagaPage() {
         const oOpt = data.find((s) => s.key === "topup_bulk_options");
         const oUmum = data.find((s) => s.key === "price_umum");
         const oPartner = data.find((s) => s.key === "price_partner");
+        const oDelayEnabled = data.find((s) => s.key === "report_delay_enabled");
+        const oDelayMinutes = data.find((s) => s.key === "report_delay_minutes");
         if (oOpt) {
           setBulkOptionsStr(oOpt.value);
           setBulkOptions(oOpt.value.split(",").map((x: string) => x.trim()).filter(Boolean));
         }
         if (oUmum) setPriceUmum(oUmum.value);
         if (oPartner) setPricePartner(oPartner.value);
+        if (oDelayEnabled) setReportDelayEnabled(oDelayEnabled.value === "true");
+        if (oDelayMinutes) setReportDelayMinutes(oDelayMinutes.value);
       })
       .catch((err) => {
         console.error("Gagal memuat pengaturan:", err);
@@ -99,11 +105,13 @@ export default function LembagaPage() {
           topup_bulk_options: bulkOptionsStr,
           price_umum: Number(priceUmum),
           price_partner: Number(pricePartner),
+          report_delay_enabled: reportDelayEnabled,
+          report_delay_minutes: Number(reportDelayMinutes) || 15,
         }),
       });
       setBulkOptions(bulkOptionsStr.split(",").map((x: string) => x.trim()).filter(Boolean));
       settingsModal.onClose();
-      toast.success("Pengaturan top-up berhasil diperbarui!");
+      toast.success("Pengaturan sistem berhasil diperbarui!");
     } catch (err: any) {
       toast.error(err.message || "Gagal memperbarui pengaturan");
     } finally {
@@ -576,8 +584,9 @@ export default function LembagaPage() {
       {/* SETTINGS MODAL */}
       <Modal isOpen={settingsModal.isOpen} onClose={settingsModal.onClose}>
         <ModalContent>
-          <ModalHeader>Pengaturan Top Up</ModalHeader>
+          <ModalHeader>Pengaturan Sistem & Top Up</ModalHeader>
           <ModalBody className="flex flex-col gap-4">
+            <div className="font-semibold text-sm text-default-600">Tarif & Paket Kredit</div>
             <Input
               label="Harga Kredit Umum (Rp)"
               type="number"
@@ -599,6 +608,32 @@ export default function LembagaPage() {
               value={bulkOptionsStr}
               onChange={(e) => setBulkOptionsStr(e.target.value)}
             />
+
+            <div className="border-t border-divider pt-3 flex flex-col gap-3">
+              <div className="font-semibold text-sm text-default-600">Delay Rilis Laporan</div>
+              <div className="flex items-center justify-between p-3 bg-default-50 border border-divider rounded-xl">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium">Aktifkan Delay Rilis Laporan</span>
+                  <span className="text-xs text-default-400">Tahan laporan selama durasi tertentu dengan progress bar di riwayat mobile</span>
+                </div>
+                <Switch
+                  isSelected={reportDelayEnabled}
+                  onValueChange={setReportDelayEnabled}
+                  color="primary"
+                />
+              </div>
+              {reportDelayEnabled && (
+                <Input
+                  label="Durasi Delay (Menit)"
+                  type="number"
+                  placeholder="15"
+                  variant="bordered"
+                  value={reportDelayMinutes}
+                  onChange={(e) => setReportDelayMinutes(e.target.value)}
+                  description="Laporan akan terbuka otomatis setelah durasi ini tercapai"
+                />
+              )}
+            </div>
           </ModalBody>
           <ModalFooter>
             <Button variant="flat" onPress={settingsModal.onClose}>Batal</Button>
