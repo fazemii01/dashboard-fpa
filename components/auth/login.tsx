@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createAuthCookie } from "@/actions/auth.action";
 import { LoginSchema } from "@/helpers/schemas";
 import { LoginFormType } from "@/helpers/types";
-import { Button, Input } from "@nextui-org/react";
+import { Button, Checkbox, Input } from "@nextui-org/react";
 import { Formik } from "formik";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ export const Login = () => {
   const initialValues: LoginFormType = {
     email: "",
     password: "",
+    rememberMe: true,
   };
 
   const handleLogin = useCallback(
@@ -25,7 +26,7 @@ export const Login = () => {
       setError(null);
       setLoading(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend.jaribakat.com";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         const response = await fetch(`${apiUrl}/auth/login`, {
           method: "POST",
           headers: {
@@ -34,6 +35,7 @@ export const Login = () => {
           body: JSON.stringify({
             email: values.email,
             password: values.password,
+            remember_me: values.rememberMe ?? true,
           }),
         });
 
@@ -48,7 +50,7 @@ export const Login = () => {
           throw new Error("Akses Ditolak: Hanya Admin Pusat atau Super Admin yang dapat mengakses dashboard ini.");
         }
 
-        await createAuthCookie(data.access_token);
+        await createAuthCookie(data.access_token, values.rememberMe ?? true);
         router.replace("/");
       } catch (err: any) {
         setError(err.message || "Terjadi kesalahan koneksi.");
@@ -70,7 +72,7 @@ export const Login = () => {
         initialValues={initialValues}
         validationSchema={LoginSchema}
         onSubmit={handleLogin}>
-        {({ values, errors, touched, handleChange, handleSubmit }) => (
+        {({ values, errors, touched, handleChange, handleSubmit, setFieldValue }) => (
           <>
             {error && (
               <div className="text-danger text-xs font-semibold p-3 rounded-xl bg-danger-500/10 border border-danger-500/20 text-center">
@@ -110,6 +112,20 @@ export const Login = () => {
                 errorMessage={errors.password}
                 onChange={handleChange("password")}
               />
+
+              <div className="flex items-center justify-between px-1">
+                <Checkbox
+                  isSelected={values.rememberMe}
+                  onValueChange={(checked) => setFieldValue("rememberMe", checked)}
+                  size="sm"
+                  color="primary"
+                  classNames={{
+                    label: "text-slate-300 text-sm select-none",
+                  }}
+                >
+                  Ingat Saya
+                </Checkbox>
+              </div>
             </div>
 
             <Button

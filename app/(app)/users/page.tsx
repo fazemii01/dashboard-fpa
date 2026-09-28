@@ -17,7 +17,9 @@ import {
   Chip,
   Switch,
   Spinner,
-  Input
+  Input,
+  Tabs,
+  Tab
 } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
 import { useToast } from "@/components/toast/toast-provider";
@@ -28,6 +30,10 @@ export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [lembaga, setLembaga] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Tabs and search filter states
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const editModal = useDisclosure();
   const createModal = useDisclosure();
@@ -61,7 +67,7 @@ export default function UsersPage() {
       return;
     }
     try {
-      const lid = createRole === "super_admin" || createLembagaId === "none" || !createLembagaId ? null : Number(createLembagaId);
+      const lid = createRole === "super_admin" || createRole === "pengguna" || createLembagaId === "none" || !createLembagaId ? null : Number(createLembagaId);
       const wid = createRole === "super_admin" && createWilayahId !== "none" ? Number(createWilayahId) : null;
       await apiRequest("/super-admin/users", {
         method: "POST",
@@ -122,7 +128,7 @@ export default function UsersPage() {
       return;
     }
     try {
-      const lid = editRole === "super_admin" || editLembagaId === "none" || !editLembagaId ? null : Number(editLembagaId);
+      const lid = editRole === "super_admin" || editRole === "pengguna" || editLembagaId === "none" || !editLembagaId ? null : Number(editLembagaId);
       const wid = editRole === "super_admin" && editWilayahId !== "none" ? Number(editWilayahId) : null;
       await apiRequest(`/super-admin/users/${selectedUser.id}`, {
         method: "PUT",
@@ -158,6 +164,29 @@ export default function UsersPage() {
     }
   };
 
+  const filteredUsers = users.filter((u) => {
+    if (activeTab === "staff_admin") {
+      if (u.role === "pengguna") return false;
+    } else if (activeTab === "pengguna") {
+      if (u.role !== "pengguna") return false;
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const name = (u.full_name || "").toLowerCase();
+      const email = (u.email || "").toLowerCase();
+      const role = (u.role || "").toLowerCase();
+      const lem = (u.lembaga_name || "").toLowerCase();
+      const wil = (u.wilayah_name || "").toLowerCase();
+      return name.includes(q) || email.includes(q) || role.includes(q) || lem.includes(q) || wil.includes(q);
+    }
+    return true;
+  });
+
+  const totalCount = users.length;
+  const staffAdminCount = users.filter((u) => u.role !== "pengguna").length;
+  const penggunaCount = users.filter((u) => u.role === "pengguna").length;
+
   return (
     <div className="my-10 px-4 lg:px-6 max-w-[95rem] mx-auto w-full flex flex-col gap-4">
       <div className="flex justify-between items-center flex-wrap gap-4">
@@ -168,6 +197,80 @@ export default function UsersPage() {
         <Button color="primary" onPress={createModal.onOpen}>
           Tambah Pengguna
         </Button>
+      </div>
+
+      {/* FILTER TABS & SEARCH BAR */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-default-50 dark:bg-default-100/40 p-3 rounded-2xl border border-default-200">
+        <Tabs
+          selectedKey={activeTab}
+          onSelectionChange={(key) => setActiveTab(key as string)}
+          color="primary"
+          variant="solid"
+          size="sm"
+          classNames={{
+            tabList: "bg-default-200/60 dark:bg-default-100 p-1 rounded-xl",
+            cursor: "bg-primary shadow-sm",
+            tab: "px-3 h-8",
+          }}
+        >
+          <Tab
+            key="all"
+            title={
+              <div className="flex items-center gap-2">
+                <span>Semua Pengguna</span>
+                <Chip size="sm" variant="flat" className="h-5 text-xs font-semibold">{totalCount}</Chip>
+              </div>
+            }
+          />
+          <Tab
+            key="staff_admin"
+            title={
+              <div className="flex items-center gap-2">
+                <span>Admin & Staf</span>
+                <Chip size="sm" variant="flat" color="primary" className="h-5 text-xs font-semibold">{staffAdminCount}</Chip>
+              </div>
+            }
+          />
+          <Tab
+            key="pengguna"
+            title={
+              <div className="flex items-center gap-2">
+                <span>Pengguna Aplikasi</span>
+                <Chip size="sm" variant="flat" color="success" className="h-5 text-xs font-semibold">{penggunaCount}</Chip>
+              </div>
+            }
+          />
+        </Tabs>
+
+        <div className="w-full md:w-80">
+          <Input
+            placeholder="Cari nama, email, lembaga..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            isClearable
+            onClear={() => setSearchQuery("")}
+            size="sm"
+            variant="bordered"
+            radius="lg"
+            startContent={
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-default-400"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            }
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -186,8 +289,8 @@ export default function UsersPage() {
             <TableColumn>TANGGAL GABUNG</TableColumn>
             <TableColumn>AKSI</TableColumn>
           </TableHeader>
-          <TableBody emptyContent="Tidak ada pengguna ditemukan">
-            {users.map((item) => (
+          <TableBody emptyContent={searchQuery ? "Tidak ada pengguna yang cocok dengan pencarian" : activeTab === "pengguna" ? "Belum ada data pengguna aplikasi" : "Tidak ada pengguna ditemukan"}>
+            {filteredUsers.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-semibold">{item.full_name || "-"}</TableCell>
                 <TableCell>{item.email}</TableCell>
@@ -200,12 +303,14 @@ export default function UsersPage() {
                         ? "secondary"
                         : item.role === "admin"
                         ? "primary"
-                        : "default"
+                        : item.role === "staff"
+                        ? "default"
+                        : "success"
                     }
                     variant="flat"
                     size="sm"
                   >
-                    {item.role.toUpperCase()}
+                    {item.role === "pengguna" ? "PENGGUNA" : item.role.toUpperCase()}
                   </Chip>
                 </TableCell>
                 <TableCell className="font-medium text-default-700">
@@ -319,6 +424,7 @@ export default function UsersPage() {
                 {user?.role === "admin_pusat" && <option value="super_admin">Super Admin</option>}
                 <option value="admin">Lembaga Admin</option>
                 <option value="staff">Lembaga Staff</option>
+                <option value="pengguna">Pengguna (Aplikasi)</option>
               </select>
             </div>
 
@@ -437,6 +543,7 @@ export default function UsersPage() {
                 {user?.role === "admin_pusat" && <option value="super_admin">Super Admin</option>}
                 <option value="admin">Lembaga Admin</option>
                 <option value="staff">Lembaga Staff</option>
+                <option value="pengguna">Pengguna (Aplikasi)</option>
               </select>
             </div>
 

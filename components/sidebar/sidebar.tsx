@@ -15,6 +15,7 @@ import { CollapseItems } from "./collapse-items";
 import { SidebarItem } from "./sidebar-item";
 import { SidebarMenu } from "./sidebar-menu";
 import { FilterIcon } from "../icons/sidebar/filter-icon";
+import { TicketIcon } from "../icons/sidebar/ticket-icon";
 import { useSidebarContext } from "../layout/layout-context";
 import { ChangeLogIcon } from "../icons/sidebar/changelog-icon";
 import { usePathname } from "next/navigation";
@@ -100,6 +101,12 @@ export const SidebarWrapper = () => {
                 title="Invoices"
                 icon={<PaymentsIcon />}
                 href="/invoices"
+              />
+              <SidebarItem
+                isActive={pathname === "/redeem-codes"}
+                title="Redeem Codes"
+                icon={<TicketIcon />}
+                href="/redeem-codes"
               />
             </SidebarMenu>
           </div>

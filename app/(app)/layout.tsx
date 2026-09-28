@@ -1,7 +1,6 @@
 import { Layout } from "@/components/layout/layout";
-import "@/styles/globals.css";
 
-export default function RootLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;

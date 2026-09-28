@@ -5,7 +5,8 @@ export function getAuthToken(): string | null {
 }
 
 export async function apiRequest(path: string, options: RequestInit = {}) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend.jaribakat.com";
+  // const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://backend.jaribakat.com";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   const token = getAuthToken();
 
   const headers = new Headers(options.headers || {});
@@ -21,11 +22,13 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
     headers,
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 || (res.status === 403 && !token)) {
     if (typeof window !== "undefined") {
       // Clear cookie and redirect
       document.cookie = "userAuth=; Max-Age=0; path=/;";
-      window.location.href = "/login";
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     throw new Error("Unauthorized");
   }

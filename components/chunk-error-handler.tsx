@@ -9,7 +9,11 @@ import { useEffect } from "react";
 export function ChunkErrorHandler() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      const message = event.message || "";
+      const message =
+        event.message ||
+        event.error?.message ||
+        event.error?.name ||
+        "";
       if (
         message.includes("ChunkLoadError") ||
         message.includes("Loading chunk") ||
