@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -97,7 +97,7 @@ export default function UsersPage() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const usersData = await apiRequest("/super-admin/users");
@@ -114,13 +114,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.role]);
 
   useEffect(() => {
     if (user) {
       fetchData();
     }
-  }, [user]);
+  }, [user, fetchData]);
 
   const handleEdit = async () => {
     if (!editEmail) {

@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import {
   Table,
   TableHeader,
@@ -44,7 +45,7 @@ export default function InvoicesPage() {
   const [copied, setCopied] = useState(false);
   const [requesting, setRequesting] = useState(false);
 
-  const fetchInvoices = () => {
+  const fetchInvoices = useCallback(() => {
     setLoading(true);
     apiRequest("/invoices")
       .then((data) => {
@@ -55,11 +56,11 @@ export default function InvoicesPage() {
         console.error(err);
         setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     fetchInvoices();
-  }, []);
+  }, [fetchInvoices]);
 
   const confirmDelete = async () => {
     if (invoiceToDelete === null) return;
@@ -312,9 +313,12 @@ export default function InvoicesPage() {
                           className="w-full h-[400px] border-0"
                         />
                       ) : (
-                        <img
+                        <Image
                           src={selectedInvoice.payment_proof_url}
                           alt="Bukti Transfer"
+                          width={600}
+                          height={400}
+                          unoptimized
                           className="max-h-[400px] max-w-full object-contain rounded-lg shadow-sm"
                         />
                       )}

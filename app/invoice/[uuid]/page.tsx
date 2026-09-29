@@ -1,9 +1,15 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Spinner, Chip, Button } from "@nextui-org/react";
 import { apiRequest } from "@/helpers/api";
 import { useToast } from "@/components/toast/toast-provider";
+import { Plus_Jakarta_Sans } from "next/font/google";
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+});
 
 export default function PublicInvoicePage() {
   const toast = useToast();
@@ -17,7 +23,7 @@ export default function PublicInvoicePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchInvoice = async () => {
+  const fetchInvoice = useCallback(async () => {
     try {
       const res = await apiRequest(`/invoices/public/${uuid}`);
       setInvoice(res);
@@ -26,13 +32,13 @@ export default function PublicInvoicePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [uuid]);
 
   useEffect(() => {
     if (uuid) {
       fetchInvoice();
     }
-  }, [uuid]);
+  }, [uuid, fetchInvoice]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -124,11 +130,7 @@ export default function PublicInvoicePage() {
   const dueDate = new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   return (
-    <>
-      {/* Load external Google Font */}
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-      
-      <div className="min-h-screen bg-slate-50 text-slate-900 py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className={`min-h-screen bg-slate-50 text-slate-900 py-12 px-4 sm:px-6 lg:px-8 ${plusJakarta.className}`}>
         <div className="mx-auto max-w-4xl">
           {/* Top Actions (Hides on print) */}
           <div className="print:hidden mb-6 flex justify-between items-center">
@@ -389,6 +391,5 @@ export default function PublicInvoicePage() {
           </div>
         </div>
       </div>
-    </>
   );
 }

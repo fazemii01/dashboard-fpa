@@ -1,4 +1,4 @@
-import { Image } from "@nextui-org/react";
+import Image from "next/image";
 import { Divider } from "@nextui-org/divider";
 
 interface Props {
@@ -23,9 +23,12 @@ export const AuthLayoutWrapper = ({ children }: Props) => {
       <div className='hidden md:flex flex-1 relative flex items-center justify-center p-6 z-10'>
         <div className='max-w-[440px] flex flex-col gap-6 text-white'>
           <div className='flex items-center gap-4'>
-            <img
+            <Image
               src="/logo.png"
               alt="Logo Allia"
+              width={64}
+              height={64}
+              priority
               className="h-16 w-16 object-contain rounded-2xl shadow-lg border border-white/10 p-1 bg-black/20"
             />
             <div className="flex flex-col">

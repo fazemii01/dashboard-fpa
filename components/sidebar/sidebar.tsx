@@ -20,6 +20,7 @@ import { useSidebarContext } from "../layout/layout-context";
 import { ChangeLogIcon } from "../icons/sidebar/changelog-icon";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/helpers/user-context";
+import Image from "next/image";
 
 export const SidebarWrapper = () => {
   const pathname = usePathname();
@@ -38,9 +39,12 @@ export const SidebarWrapper = () => {
       >
         <div className={Sidebar.Header()}>
           <div className="flex flex-col items-center gap-3 px-3 py-4 select-none w-full">
-            <img
+            <Image
               src="/logo.png"
               alt="Logo Allia"
+              width={144}
+              height={64}
+              priority
               className="w-36 h-auto object-contain max-h-16"
             />
             <div className="flex flex-col items-center text-center">

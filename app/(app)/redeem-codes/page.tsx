@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import {
   Table,
   TableHeader,
@@ -62,7 +63,7 @@ export default function RedeemCodesPage() {
   const deleteModal = useDisclosure();
   const [codeToDelete, setCodeToDelete] = useState<RedeemCodeItem | null>(null);
 
-  const fetchCodes = async () => {
+  const fetchCodes = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiRequest("/redeem-codes");
@@ -72,11 +73,11 @@ export default function RedeemCodesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchCodes();
-  }, []);
+  }, [fetchCodes]);
 
   const handleGenerateRandomCode = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -473,11 +474,14 @@ export default function RedeemCodesPage() {
                 {selectedQrCode && (
                   <>
                     <div className="p-4 bg-white border border-default-200 rounded-xl shadow-sm">
-                      <img
+                      <Image
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
                           selectedQrCode.code
                         )}`}
                         alt={`QR Code ${selectedQrCode.code}`}
+                        width={192}
+                        height={192}
+                        unoptimized
                         className="w-48 h-48 object-contain"
                       />
                     </div>
