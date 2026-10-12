@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 8200",
-    "build": "next build",
-    "start": "next start -p 8200",
-    "lint": "next lint"
+    "dev": "node node_modules/next/dist/bin/next dev -p 8200",
+    "build": "node node_modules/next/dist/bin/next build",
+    "start": "node node_modules/next/dist/bin/next start -p 8200",
+    "lint": "node node_modules/next/dist/bin/next lint",
+    "postinstall": "node -e \"try { const fs = require('fs'), p = require('path'), b = p.join('node_modules', '.bin'); if (fs.existsSync(b)) fs.readdirSync(b).forEach(f => { try { fs.chmodSync(p.join(b, f), 0o755); } catch(e){} }); } catch(e){}\""
   },
   "dependencies": {
     "@nextui-org/react": "2.0.22",
